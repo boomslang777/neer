@@ -17,6 +17,10 @@ def fire(kite,direction,strike,lot,instrument,mult,token,days,timeframe):
 
 def monitor(kite,direction,long_leg,short_leg,lot,mult,token,days,timeframe):
     import datetime,time,pandas as pd,pandas_ta as ta
+    import datetime
+    import time
+    import pytz
+    indian_timezone = pytz.timezone('Asia/Kolkata')
     while True:
         current_time = datetime.datetime.now().time()
         if current_time >= datetime.time(15,25):
@@ -27,16 +31,15 @@ def monitor(kite,direction,long_leg,short_leg,lot,mult,token,days,timeframe):
         #wait_time = (60 * mult) - (current_time.second % (60 * mult))
         #time.sleep(wait_time)
         #print(f"sleeping for  {wait_time}")
-        current_time = datetime.datetime.now().time()
+        current_time = datetime.datetime.now(indian_timezone).time()
         minutes = current_time.minute
         seconds = current_time.second
-        minutes_to_wait = mult - (minutes % mult)
-        if minutes_to_wait == mult:
-            minutes_to_wait = 0
-        seconds_to_wait = 60 - seconds if seconds != 0 else 0
-        total_wait_time = minutes_to_wait * 60 + seconds_to_wait
-        print(total_wait_time)
-        time.sleep(total_wait_time)
+
+        time_to_next_mult = (mult - (minutes % mult)) * 60 - seconds
+
+        print(f"Current time (Indian Time): {current_time}, Waiting for {time_to_next_mult} seconds...")
+    
+        time.sleep(time_to_next_mult)
         to_date = pd.Timestamp.now().strftime('%Y-%m-%d')
         from_date = (pd.Timestamp.now() - pd.DateOffset(days=days)).strftime('%Y-%m-%d')
         instrument_token = token
