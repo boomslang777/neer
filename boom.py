@@ -5,6 +5,11 @@ from jugaad_trader import Zerodha
 import asyncio
 from datetime import datetime, timedelta
 import rms
+import time
+import pytz
+
+# Set the timezone for India
+india_timezone = pytz.timezone('Asia/Kolkata')
 
 config = configparser.ConfigParser()
 config.read('creds.ini')
@@ -59,9 +64,16 @@ def run_at_915():
     from datetime import datetime, timedelta
     import time
     while True:
-        now = datetime.now().astimezone()
+    # Get the current time in UTC
+        now_utc = datetime.utcnow()
+
+        # Convert UTC time to India time
+        now = now_utc.replace(tzinfo=pytz.utc).astimezone(india_timezone)
+
+        # Print the India time
+        print("India Time:", now.strftime('%Y-%m-%d %H:%M:%S %Z'))
         print(now)
-        target_time = now.replace(hour=8, minute=15, second=0, microsecond=0)
+        target_time = now.replace(hour=9, minute=15, second=0, microsecond=0)
         
         if now >= target_time:
             fetch_nifty_data(kite)
@@ -88,17 +100,15 @@ def fetch_nifty_data(kite):
         #wait_time = (60 * mult) - (current_time.second % (60 * mult))+2
         #print(f"Current wait time is {wait_time}")
         #time.sleep(wait_time)
-        current_time = datetime.datetime.now().time()
+        current_time = datetime.datetime.now(india_timezone).time()
         minutes = current_time.minute
         seconds = current_time.second
-        minutes_to_wait = mult - (minutes % mult)
-        if minutes_to_wait == mult:
-            minutes_to_wait = 0
-        seconds_to_wait = 60 - seconds if seconds != 0 else 0
-        total_wait_time = minutes_to_wait * 60 + seconds_to_wait
-        print(total_wait_time)
-        time.sleep(total_wait_time)
-        #print("total wait time is {total_wait_time}")
+
+        time_to_next_mult = (mult - (minutes % mult)) * 60 - seconds
+
+        print(f"Current time (Indian Time): {current_time}, Waiting for {time_to_next_mult} seconds...")
+    
+        time.sleep(time_to_next_mult)
         to_date = pd.Timestamp.now().strftime('%Y-%m-%d')
         from_date = (pd.Timestamp.now() - pd.DateOffset(days=days)).strftime('%Y-%m-%d')
         instrument_token = token
@@ -110,6 +120,8 @@ def fetch_nifty_data(kite):
         st2 = ta.supertrend(new_data_df['high'], new_data_df['low'], new_data_df['close'], length=5, multiplier=1.3)
         latest_st1 = st1.iloc[-1]
         latest_st2 = st2.iloc[-1]
+        combined_df = pd.concat([latest_st1, latest_st2], axis=1)
+        print(combined_df)
         supertrend_values_st1 = latest_st1['SUPERT_5_1.5']
         supertrend_values_st2 = latest_st2['SUPERT_5_1.3']
         print(f"supertrend 1 is {supertrend_values_st1},supertrend 2 is {supertrend_values_st2}")
@@ -131,4 +143,4 @@ def fetch_nifty_data(kite):
 
 
 run_at_915()            
-fetch_nifty_data(kite)
+# fetch_nifty_data(kite)
