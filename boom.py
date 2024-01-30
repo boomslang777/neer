@@ -109,8 +109,15 @@ def fetch_nifty_data(kite):
         print(f"Current time (Indian Time): {current_time}, Waiting for {time_to_next_mult} seconds...")
     
         time.sleep(time_to_next_mult)
-        to_date = pd.Timestamp.now().strftime('%Y-%m-%d')
-        from_date = (pd.Timestamp.now() - pd.DateOffset(days=days)).strftime('%Y-%m-%d')
+        utc_time = pd.Timestamp.now(tz='UTC')
+
+        ist_time = utc_time.tz_convert('Asia/Kolkata')
+
+        # Format as string
+        to_date = ist_time.strftime('%Y-%m-%d %H:%M:%S')
+        print(to_date)
+        from_date = (pd.Timestamp.now() - pd.DateOffset(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+
         instrument_token = token
 
         new_data = kite.historical_data(instrument_token, from_date=from_date, to_date=to_date, interval=timeframe)
@@ -118,20 +125,27 @@ def fetch_nifty_data(kite):
         print(new_data_df)
         st1 = ta.supertrend(new_data_df['high'], new_data_df['low'], new_data_df['close'], length=5, multiplier=1.5)
         st2 = ta.supertrend(new_data_df['high'], new_data_df['low'], new_data_df['close'], length=5, multiplier=1.3)
+        # print(st1)
+        # print(st2)
         latest_st1 = st1.iloc[-1]
         latest_st2 = st2.iloc[-1]
         combined_df = pd.concat([latest_st1, latest_st2], axis=1)
-        print(combined_df)
+        # print(combined_df)
         supertrend_values_st1 = latest_st1['SUPERT_5_1.5']
         supertrend_values_st2 = latest_st2['SUPERT_5_1.3']
+        sup1 = st1.iloc[-2]['SUPERT_5_1.5']
+        sup2 = st2.iloc[-2]['SUPERT_5_1.3']
+        print(f"Previous supertrend is {sup1} and {sup2}")
         print(f"supertrend 1 is {supertrend_values_st1},supertrend 2 is {supertrend_values_st2}")
-        # time.sleep(30)
+        
+        
         if (
         is_candle_close_above_supertrend(new_data_df['close'].iloc[-1], supertrend_values_st1) and
         is_candle_close_above_supertrend(new_data_df['close'].iloc[-1], supertrend_values_st2) and
         new_data_df['open'].iloc[-1] < supertrend_values_st2    
     ):  
             rms.fire(kite,"BUY",strike,lots,instrument,mult,token,days,timeframe)
+            
 
         elif (
         is_candle_close_below_supertrend(new_data_df['close'].iloc[-1], supertrend_values_st1) and
@@ -139,7 +153,8 @@ def fetch_nifty_data(kite):
         new_data_df['open'].iloc[-1] > supertrend_values_st1     
 
         ):
-            rms.fire(kite,"SELL",strike,lots,instrument,mult,token,days,timeframe)  
+            rms.fire(kite,"SELL",strike,lots,instrument,mult,token,days,timeframe) 
+            
 
 
 run_at_915()            
